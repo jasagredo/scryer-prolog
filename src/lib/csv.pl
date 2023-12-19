@@ -136,7 +136,7 @@ write_rows(Out, [Row, X | Y], Opt) :-
 
 write_csv_(Out, frame(Header, Rows), Opt) :-
   option(with_header(With_Header), Opt),
-  ( With_Header == true -> 
+  ( With_Header == true ->
     write_row(Out, Header, Opt),
     option(line_separator(Line_Sep), Opt),
     format(Out, "~w", [Line_Sep])
@@ -165,6 +165,10 @@ write_csv(File_Name, Frm) :-
 tokens([], Opt), [Tk_Sep] -->
   { option(token_separator(Tk_Sep), Opt) },
   [Tk_Sep],
+  !.
+tokens([], Opt), [Line_Sep] -->
+  { option(line_separator(Line_Sep), Opt) },
+  [Line_Sep],
   !.
 tokens([], _), "\r\n" -->
   "\r\n",
@@ -217,11 +221,14 @@ separator(Opt) -->
 
 
 row([X | Y], Opt) -->
+  { option(line_separator(Line_Sep), Opt) },
   field(X, Opt),
   !,
   ( separator(Opt) ->
     row(Y, Opt)
   ; end_token ->
+    { Y = [] }
+  ; [Line_Sep] ->
     { Y = [] }).
 
 
@@ -234,10 +241,11 @@ rows(R, Opt) -->
   ; { R = [] }).
 
 
-parse_csv(frame(Header, Rows), Opt) --> 
+parse_csv(frame(Header, Rows), Opt) -->
   { option_extends(Opt, [
       with_header(true),
-      token_separator(',')
+      token_separator(','),
+      line_separator('\n')
     ], Opt0)
   },
   ( { option(with_header(With_Header), Opt0),
